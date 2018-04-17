@@ -1,7 +1,10 @@
-$('#calendar').datepicker({
-		});
+$(document).ready(function() {
 
-$("#menu-toggle").click(function(e) {
+    $('#calendar').datepicker({});
+
+    $("#menu-toggle").click(function(e) {
         e.preventDefault();
         $("#wrapper").toggleClass("toggled");
     });
+
+});

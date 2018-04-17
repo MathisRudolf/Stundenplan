@@ -1,0 +1,43 @@
+
+header(class="page-header row justify-center")
+    div(class="col-md-6 col-lg-8")
+        h1(class="float-left text-center text-md-left") Dashboard
+
+    div(class="dropdown user-dropdown col-md-6 col-lg-4 text-center text-md-right")
+        a(
+            class="btn btn-stripped dropdown-toggle"
+            href="https://example.com"
+            id="dropdownMenuLink"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false")
+
+            //img(
+                src="images/profile-pic.jpg"
+                alt="profile photo"
+                class="circle float-left profile-photo"
+                width="50"
+                height="auto")
+
+            div(class="username mt-1")
+                h4(class="mb-1") Username
+                h6(calss="text-muted") Super Admin
+
+        div(
+            class="dropdown-menu dropdown-menu-right"
+            style="margin-right: 1.5rem;"
+            aria-labelledby="dropdownMenuLink")
+
+            a(class="dropdown-item" href="#")
+                em(class="fa fa-user-circle mr-1")
+                text View Profile
+
+            a(class="dropdown-item" href="#")
+                em(class="fa fa-sliders mr-1")
+                text Preference
+
+            a(class="dropdown-item" href="#")
+                em(class="fa fa-sliders mr-1")
+                text Logout
+
+    div(class="clear")
