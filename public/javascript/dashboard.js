@@ -1,0 +1,5 @@
+APP.Dashboard = class {
+    constructor(){
+
+    }
+}

@@ -3,14 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "watch": "watchify -t jadeify public/javascript/app.js -o public/bundle.js -v",
+    "build": "browserify -t jadeify public/javascript/app.js -o public/bundle.js",
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "watchify": "~3.11.0",
+    "tether": "~1.4.4",
+    "browserify": "~14.0.0",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.16.0",
     "http-errors": "~1.6.2",
     "jade": "~1.11.0",
-    "morgan": "~1.9.0"
+    "jadeify": "^4.7.0",
+    "morgan": "~1.9.0",
+    "jquery": "~3.3.1"
+  },
+  "peerDependencies": {
+    "browserify": ">= 2.4.0 < 15",
+    "jade": "^1.9.2"
   }
 }
