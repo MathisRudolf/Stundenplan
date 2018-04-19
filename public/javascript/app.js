@@ -1,19 +1,24 @@
 "use strict";
 
 let APP = {};
-APP.templates = {
-    calender_widget: require("../../views/calendar_widget.jade"),
-    timeline_widget: require("../../views/timeline_widget.jade")
+let templates = {
+    dashboard:{
+
+    },
+    calendar:{
+        widget: require("../../views/calendar/widget.jade")
+    },
+    timeline:{
+        widget: require("../../views/timeline/widget.jade")
+    }
 }
 
 $(document).ready(function() {
 
     console.log($('#toggle-test'));
     $('#toggle-test').on("click", function(e){
-        let template = require("../../views/calendar_widget.jade");
-        console.log(APP)
         e.preventDefault();
-        $('main').append(APP.templates.timeline_widget({}));
+        $('main').append(templates.timeline.widget({}));
     });
 
     $('#calendar').datepicker({});
