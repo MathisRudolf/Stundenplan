@@ -1,0 +1,44 @@
+doctype html
+html(lang="de")
+    head
+        title= "Stundenplan"
+        script(src="/stylesheets/bootstrap-4-template/js/jquery-3.2.1.min.js")
+        script(src="/javascript/plugin/jquery/jquery.validate.min.js")
+        script(src="/javascript/login.js")
+        include ../layout/styles
+
+    body(class="no-padding")
+
+        div(class="container-fluid" id="wrapper")
+
+            main(class="row vertical-center")
+                section(class="col col-12")
+                    header(class="page-header row justify-center")
+                        div(class="col-md-6 col-lg-8")
+                            h1(class="float-left text-center text-md-left") Stundenplan
+
+                section(class="col col-md-4 hidden-sm-down")
+
+                section( class="col col-md-4 col-xs-12")
+                        div(class="card mb-4")
+                            div(class="card-block")
+                                h3(class="card-title")
+
+                                form(id="login-form" class="card-subtitle mb-2 text-muted" action="POST")
+                                    fieldset
+                                        div(class="form-group col col-12")
+                                            label(class="col-12 control-label no-padding" for="name") Name
+                                                div
+                                                    input(id="name" name="name" class="form-control" type="text")
+
+                                        div(class="form-group col col-12")
+                                            label(class="col-12 control-label no-padding" for="name") Password
+                                                div
+                                                    input(id="password" name="password" class="form-control" type="password")
+
+                                        div(class="col col-12")
+                                            button(type="submit" id="login-btn" class="btn btn-sm btn-primary pull-right") Login
+
+                section(class="col col-md-4 hidden-sm-down")
+
+            //include footer

@@ -1,3 +1,5 @@
-APP.Timeline = class {
+let TimeLine = class {
 
 }
+
+module.exports = TimeLine;

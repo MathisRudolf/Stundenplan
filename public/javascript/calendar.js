@@ -1,3 +1,5 @@
-APP.Calendar = class {
+let Calendar = class {
 
 }
+
+module.exports = Calendar;

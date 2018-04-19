@@ -258,22 +258,18 @@ exports.DebugItem = function DebugItem(lineno, filename) {
 },{"fs":1}],3:[function(require,module,exports){
 "use strict";
 
-let APP = {};
-let templates = {
-    dashboard:{
+let templates = require('./templates');
 
-    },
-    calendar:{
-        widget: require("../../views/calendar/widget.jade")
-    },
-    timeline:{
-        widget: require("../../views/timeline/widget.jade")
-    }
+let classes = {
+    Dashboard: require('./dashboard'),
+    TimeLine: require('./timeline'),
+    Calendar: require('./calendar')
 }
+let APP = {};
+
 
 $(document).ready(function() {
 
-    console.log($('#toggle-test'));
     $('#toggle-test').on("click", function(e){
         e.preventDefault();
         $('main').append(templates.timeline.widget({}));
@@ -287,7 +283,41 @@ $(document).ready(function() {
     });
 
 });
-},{"../../views/calendar/widget.jade":4,"../../views/timeline/widget.jade":5}],4:[function(require,module,exports){
+},{"./calendar":4,"./dashboard":5,"./templates":6,"./timeline":7}],4:[function(require,module,exports){
+let Calendar = class {
+
+}
+
+module.exports = Calendar;
+},{}],5:[function(require,module,exports){
+let Dashboard = class {
+    constructor(){
+
+    }
+}
+
+module.exports = Dashboard;
+},{}],6:[function(require,module,exports){
+let templates = {
+    dashboard:{
+
+    },
+    calendar:{
+        widget: require("../../views/calendar/widget.jade")
+    },
+    timeline:{
+        widget: require("../../views/timeline/widget.jade")
+    }
+}
+
+module.exports = templates;
+},{"../../views/calendar/widget.jade":8,"../../views/timeline/widget.jade":9}],7:[function(require,module,exports){
+let TimeLine = class {
+
+}
+
+module.exports = TimeLine;
+},{}],8:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -297,7 +327,7 @@ var jade_interp;
 
 buf.push("<div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div>");;return buf.join("");
 };
-},{"jade/runtime":2}],5:[function(require,module,exports){
+},{"jade/runtime":2}],9:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {

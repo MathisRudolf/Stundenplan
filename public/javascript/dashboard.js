@@ -1,5 +1,7 @@
-APP.Dashboard = class {
+let Dashboard = class {
     constructor(){
 
     }
 }
+
+module.exports = Dashboard;
