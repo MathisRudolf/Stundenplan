@@ -1,27 +1,38 @@
 "use strict";
 
-let templates = require('./templates');
+window.APP = {};
 
-let classes = {
+
+window.templates = require('./templates');
+
+window.classes = {
     Dashboard: require('./dashboard'),
     TimeLine: require('./timeline'),
-    Calendar: require('./calendar')
+    Calendar: require('./calendar'),
+    Menu: require('./menu'),
+    Login: require('./login'),
+    Nav: require('./nav'),
+    content: require('./content')
 }
-let APP = {};
+
+APP.tabs = {
+
+}
+
 
 
 $(document).ready(function() {
+    console.log(classes);
+    console.log(document.location.pathname);
 
-    $('#toggle-test').on("click", function(e){
-        e.preventDefault();
-        $('main').append(templates.timeline.widget({}));
-    });
+    if (document.location.pathname != '/'){
+        APP.login = new classes.Login('#login-form', {});
+        return;
+    }
 
-    $('#calendar').datepicker({});
+    APP.content = new classes.content('main', {});
+    APP.menu = new classes.Nav('nav', {});
 
-    $("#menu-toggle").click(function(e) {
-        e.preventDefault();
-        $("#wrapper").toggleClass("toggled");
-    });
+
 
 });

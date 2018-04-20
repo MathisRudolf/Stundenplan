@@ -258,66 +258,208 @@ exports.DebugItem = function DebugItem(lineno, filename) {
 },{"fs":1}],3:[function(require,module,exports){
 "use strict";
 
-let templates = require('./templates');
+window.APP = {};
 
-let classes = {
+
+window.templates = require('./templates');
+
+window.classes = {
     Dashboard: require('./dashboard'),
     TimeLine: require('./timeline'),
-    Calendar: require('./calendar')
+    Calendar: require('./calendar'),
+    Menu: require('./menu'),
+    Login: require('./login'),
+    Nav: require('./nav'),
+    content: require('./content')
 }
-let APP = {};
+
+APP.tabs = {
+
+}
+
 
 
 $(document).ready(function() {
+    console.log(classes);
+    console.log(document.location.pathname);
 
-    $('#toggle-test').on("click", function(e){
-        e.preventDefault();
-        $('main').append(templates.timeline.widget({}));
-    });
+    if (document.location.pathname != '/'){
+        APP.login = new classes.Login('#login-form', {});
+        return;
+    }
 
-    $('#calendar').datepicker({});
+    APP.content = new classes.content('main', {});
+    APP.menu = new classes.Nav('nav', {});
 
-    $("#menu-toggle").click(function(e) {
-        e.preventDefault();
-        $("#wrapper").toggleClass("toggled");
-    });
+
 
 });
-},{"./calendar":4,"./dashboard":5,"./templates":6,"./timeline":7}],4:[function(require,module,exports){
+},{"./calendar":4,"./content":5,"./dashboard":6,"./login":7,"./menu":8,"./nav":9,"./templates":10,"./timeline":11}],4:[function(require,module,exports){
 let Calendar = class {
 
 }
 
 module.exports = Calendar;
 },{}],5:[function(require,module,exports){
-let Dashboard = class {
-    constructor(){
+let Content = class {
 
+    constructor(selector, config) {
+        if (selector == undefined) return;
+        this.ContentDomObject = $(selector);
+
+        if(config){
+
+        }
+    }
+
+    set(name){
+        console.log(name);
+        //Falls name nicht in classes vorhanden
+        if (classes[name] == undefined) return false;
+        console.log('test1');
+
+        //Falls content leer ist
+        if (this.content == undefined){
+            console.log('test11');
+
+            this.content = new classes[name]();
+            this.content.render();
+            APP.tabs[name] = this.content;
+            return true;
+        }
+        console.log('test2');
+
+        //Falls content nicht leer und seite noch nicht bekannt
+        if (APP.tabs[name] == undefined){
+            console.log('test21');
+
+            this.content.stash();
+
+            this.content = new classes[name]();
+            this.content.render();
+            APP.tabs[name] = this.content;
+            return true;
+        }
+        console.log('test3');
+
+        //Falls content nicht leer und seite schon mal geladen
+        this.content.stash();
+
+        this.content =  APP.tabs[name];
+        this.content.render();
+        APP.tabs[name] = this.content;
+        return true;
+    }
+}
+module.exports = Content
+},{}],6:[function(require,module,exports){
+let Dashboard = class {
+    constructor(selector, config){
+        if(selector == undefined) return;
+    }
+
+    stash(){
+        this.stash = this.DashboardDomObject.html()
+        this.DashboardDomObject = undefined
+    }
+
+    restore(){
+        this.DashboardDomObject.html(this.stash);
+        this.DashboardDomObject = $('#dashboard');
+    }
+    render(){
+        APP.content.ContentDomObject.html(templates.dashboard.page({}));
+        this.DashboardDomObject = $('#dashboard');
     }
 }
 
 module.exports = Dashboard;
-},{}],6:[function(require,module,exports){
-let templates = {
-    dashboard:{
+},{}],7:[function(require,module,exports){
+let Login = class {
+    constructor (selector, config) {
+        this.LoginDomObject = $(selector);
 
+        this.LoginDomObject.validate({
+            rules: {
+                name: {
+                    required: true
+                },
+                password: {
+                    required: true
+                }
+            },
+            submitHandler: function (form) {
+                form.preventDefault();
+            }
+        });
+    }
+}
+module.exports = Login;
+},{}],8:[function(require,module,exports){
+let Menu = class {
+
+    constructor(selector, config){
+
+        if (config){
+
+        }
+
+        this.MenuDomObject = $(selector);
+        this.MenuDomObject.click(this.click_event_handler());
+    }
+
+    click_event_handler(e){
+        e.preventDefault();
+        $("#wrapper").toggleClass("toggled");
+    }
+}
+
+module.exports = Menu;
+},{}],9:[function(require,module,exports){
+let Nav = class {
+    constructor (selector, config){
+        if(selector == undefined) return;
+        this.NavDomObject = $(selector);
+        this.NavDomObject.on('click', $.proxy(function(e){
+            this.click_event_handler(e);
+        },this));
+    }
+
+    click_event_handler(event) {
+        event.preventDefault();
+        let target = $($(event.target));
+        if(target.is('a')){
+            APP.content.set(target.data('href'));
+            console.log(target.data('href'))
+        }
+    }
+
+}
+module.exports = Nav;
+},{}],10:[function(require,module,exports){
+let templates = {
+    dashboard: {
+        page: require("../../views/dashboard/dashboard.jade")
     },
     calendar:{
         widget: require("../../views/calendar/widget.jade")
     },
     timeline:{
         widget: require("../../views/timeline/widget.jade")
+    },
+    timetable:{
+        page: require("../../views/timetable/timetable.jade")
     }
 }
 
 module.exports = templates;
-},{"../../views/calendar/widget.jade":8,"../../views/timeline/widget.jade":9}],7:[function(require,module,exports){
+},{"../../views/calendar/widget.jade":12,"../../views/dashboard/dashboard.jade":13,"../../views/timeline/widget.jade":14,"../../views/timetable/timetable.jade":15}],11:[function(require,module,exports){
 let TimeLine = class {
 
 }
 
 module.exports = TimeLine;
-},{}],8:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -327,7 +469,17 @@ var jade_interp;
 
 buf.push("<div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div>");;return buf.join("");
 };
-},{"jade/runtime":2}],9:[function(require,module,exports){
+},{"jade/runtime":2}],13:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+
+buf.push("<header class=\"page-header row justify-center\"><div class=\"col-md-6 col-lg-8\"><h1 class=\"float-left text-center text-md-left\">Dashboard</h1></div><div class=\"dropdown user-dropdown col-md-6 col-lg-4 text-center text-md-right\"><a href=\"https://example.com\" id=\"dropdownMenuLink\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-stripped dropdown-toggle\"><!--img(src=\"images/profile-pic.jpg\"\nalt=\"profile photo\"\nclass=\"circle float-left profile-photo\"\nwidth=\"50\"\nheight=\"auto\")\n--><div class=\"username mt-1\"><h4 class=\"mb-1\">Username</h4><h6 calss=\"text-muted\">Super Admin</h6></div></a><div style=\"margin-right: 1.5rem;\" aria-labelledby=\"dropdownMenuLink\" id=\"toggle-test\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-user-circle mr-1\"></em><text>View Profile</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Calendar</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Logout</text></a></div></div><div class=\"clear\"></div></header><section id=\"dashboard\" class=\"row\"><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Timeline</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><ul class=\"timeline\"><li><div class=\"timeline-badge\"><em class=\"fa fa-camera\"></em></div><div class=\"timeline-panel\"><div class=\"timeline-heading\"><h5 class=\"timeline-title mt-2\">Titel hier einfügen</h5></div><div class=\"timeline-body\"><p>Variable hier einfügen</p></div></div></li></ul></div></div></div></section>");;return buf.join("");
+};
+},{"jade/runtime":2}],14:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -336,5 +488,15 @@ var jade_mixins = {};
 var jade_interp;
 
 buf.push("<div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Timeline</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><ul class=\"timeline\"><li><div class=\"timeline-badge\"><em class=\"fa fa-camera\"></em></div><div class=\"timeline-panel\"><div class=\"timeline-heading\"><h5 class=\"timeline-title mt-2\">Titel hier einfügen</h5></div><div class=\"timeline-body\"><p>Variable hier einfügen</p></div></div></li></ul></div></div></div>");;return buf.join("");
+};
+},{"jade/runtime":2}],15:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+
+buf.push("<section id=\"timetable\" class=\"row\"><header class=\"page-header row justify-center\"><div class=\"col-md-6 col-lg-8\"><h1 class=\"float-left text-center text-md-left\">Dashboard</h1></div><div class=\"dropdown user-dropdown col-md-6 col-lg-4 text-center text-md-right\"><a href=\"https://example.com\" id=\"dropdownMenuLink\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-stripped dropdown-toggle\"><!--img(src=\"images/profile-pic.jpg\"\nalt=\"profile photo\"\nclass=\"circle float-left profile-photo\"\nwidth=\"50\"\nheight=\"auto\")\n--><div class=\"username mt-1\"><h4 class=\"mb-1\">Username</h4><h6 calss=\"text-muted\">Super Admin</h6></div></a><div style=\"margin-right: 1.5rem;\" aria-labelledby=\"dropdownMenuLink\" id=\"toggle-test\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-user-circle mr-1\"></em><text>View Profile</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Calendar</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Logout</text></a></div></div><div class=\"clear\"></div></header><p>STUNDENPLAN</p></section>");;return buf.join("");
 };
 },{"jade/runtime":2}]},{},[3]);

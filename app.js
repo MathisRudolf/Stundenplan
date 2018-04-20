@@ -9,9 +9,9 @@ let app = express();
 //Routen
 
 let loginRouter = require('./routes/login');
-let dashboardRouter = require('./routes/dashboard');
+let appRouter = require('./routes/app');
 
-app.use('/', dashboardRouter);
+app.use('/', appRouter);
 app.use('/login', loginRouter);
 
 

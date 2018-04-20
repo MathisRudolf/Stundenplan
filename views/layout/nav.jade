@@ -1,26 +1,16 @@
 nav(class="sidebar col-xs-12 col-sm-4 col-lg-3 col-xl-2 bg-faded sidebar-style-1")
 
     h1(class="site-title")
-        a(href="index.html")
+        a(data-href="/")
             em(class="fa fa-rocket")
-            text Stundenplan
+            | Stundenplan
 
     a(href="#menu-toggle" class="btn btn-default" id="menu-toggle")
         em(class="fa fa-bars")
 
     ul(class="nav nav-pills flex-column sidebar-nav")
-
-        li(class="nav-item")
-            a(class="nav-link active")
-                em(class="fa fa-dashboard")
-                text Dashboard
-
-        li(class="nav-item")
-            a(class="nav-link active")
-                em(class="fa fa-dashboard")
-                text Stundenpläne
-
-        li(class="nav-item")
-            a(class="nav-link active")
-                em(class="fa fa-dashboard")
-                text Termine
+        each e in nav
+            li(class="nav-item")
+                a(class="nav-link active" data-href="#{e.href}")
+                    em(class="fa #{e.icon}")
+                    | #{e.name}
