@@ -259,122 +259,480 @@ exports.DebugItem = function DebugItem(lineno, filename) {
 "use strict";
 
 window.APP = {};
+APP.tabs = {}
 
+window.templates = require('./application/templates');
+window.classes = require('./application/classes');
 
-window.templates = require('./templates');
-
-window.classes = {
-    Dashboard: require('./dashboard'),
-    TimeLine: require('./timeline'),
-    Calendar: require('./calendar'),
-    Menu: require('./menu'),
-    Login: require('./login'),
-    Nav: require('./nav'),
-    content: require('./content')
-}
-
-APP.tabs = {
-
-}
+APP.notify = require('./application/notify');
 
 
 
 $(document).ready(function() {
-    console.log(classes);
-    console.log(document.location.pathname);
 
-    if (document.location.pathname != '/'){
+    if (document.location.pathname != '/') {
         APP.login = new classes.Login('#login-form', {});
         return;
     }
 
-    APP.content = new classes.content('main', {});
-    APP.menu = new classes.Nav('nav', {});
+    APP.eventservice = new classes.EventService();
 
+    APP.menu = new classes.Menu('menu',{HeadingSelector: '#heading-text'});
+    APP.alert = new classes.Alert('div#alert', {})
+    APP.nav = new classes.Nav('nav', {});
 
+    APP.content = new classes.Content('div#content', {home: 'Dashboard'});
+
+    APP.eventservice.subscribe(APP, 'app')
 
 });
-},{"./calendar":4,"./content":5,"./dashboard":6,"./login":7,"./menu":8,"./nav":9,"./templates":10,"./timeline":11}],4:[function(require,module,exports){
+},{"./application/classes":5,"./application/notify":10,"./application/templates":11}],4:[function(require,module,exports){
+let Alert = class {
+
+    constructor(selector, config){
+        if (config){
+
+        }
+        this.DomObject = $(selector);
+    }
+    success(text){
+        this.DomObject.html(templates.alert.success({text: text}));
+        this.set_remove_event();
+    }
+    warning(text){
+        this.DomObject.html(templates.alert.warning({text: text}));
+        this.set_remove_event();
+    }
+    info(text){
+        this.DomObject.html(templates.alert.info({text: text}));
+        this.set_remove_event();
+    }
+    danger(text){
+        this.DomObject.html(templates.alert.danger({text: text}));
+        this.set_remove_event();
+    }
+    primary(text){
+        this.DomObject.html(templates.alert.primary({text: text}));
+        this.set_remove_event();
+    }
+    set_remove_event(){
+        this.DomObject.find('a.remove').on('click', function(event){
+            event.preventDefault();
+            $(this).parent().remove();
+        });
+    }
+}
+
+module.exports = Alert;
+},{}],5:[function(require,module,exports){
+let classes = {
+    Dashboard: require('../pages/dashboard'),
+    TimeLine: require('../pages/timeline'),
+    Calendar: require('../pages/calendar'),
+    Menu: require('./menu'),
+    Login: require('../pages/login'),
+    Nav: require('./nav'),
+    Content: require('./content'),
+    Timetable: require('../pages/timetable'),
+    Alert: require('./alert'),
+    EventService: require('./eventservice'),
+    Events: require('../pages/events')
+}
+module.exports = classes
+},{"../pages/calendar":12,"../pages/dashboard":13,"../pages/events":14,"../pages/login":15,"../pages/timeline":16,"../pages/timetable":17,"./alert":4,"./content":6,"./eventservice":7,"./menu":8,"./nav":9}],6:[function(require,module,exports){
+let Content = class {
+
+    constructor(selector, config) {
+        this.DomObject = $(selector);
+
+        console.log(config);
+        if(config){
+            if(config.home){
+                console.log('test');
+                this.home = new classes[config.home]();
+                this.content = this.home;
+                this.home.render(this.DomObject);
+
+            }
+        }
+
+
+        APP.eventservice.subscribe(this, 'content')
+    }
+
+    showHome(){
+        this.content.hide();
+        this.home.show()
+    }
+
+    setTab(name){
+        console.log('SetTab');
+
+        //Falls name nicht in classes vorhanden
+        if (classes[name] == undefined) return false;
+
+        if(this.content == APP.tabs[name]){
+            return true;
+        }
+        this.home.hide();
+        this.content.hide();
+
+        if(APP.tabs[name] == undefined){
+            this.content = new classes[name]();
+            this.content.render(this.DomObject);
+            APP.tabs[name] = this.content;
+        }else{
+            this.content = APP.tabs[name];
+            this.content.show();
+        }
+
+    }
+
+    destroyTab(name){
+        if(APP.tabs[name] != undefined){
+            if(APP.tabs[name] == this.content){
+                this.content = this.home;
+                this.content.show()
+            }
+            APP.tabs[name].destroy();
+            APP.tabs[name] = undefined;
+        }
+    }
+
+    notify(self, message, data) {
+        switch (message) {
+            case 'content':
+                if (self[data.method] != undefined) {
+                    self[data.method](data.name);
+                    return;
+                }
+                console.warn('Falsche parameter: ' + message + ':');
+                console.log(data);
+                break;
+            default:
+                console.warn('Unbekannte Notification: ' + message);
+                break;
+        }
+    }
+}
+module.exports = Content
+},{}],7:[function(require,module,exports){
+//------------------------------------------------------------------------------
+// Event-Service: asynchroner Nachrichtenaustausch
+//------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------
+let EventService = class {
+//------------------------------------------------------------------------------
+    constructor () {
+        this.queue      = [];
+        this.Subscriber = {};
+        window.onhashchange = this.send.bind(this);
+    }
+    send (event) {
+        // der hash-Wert interessiert hier nicht
+        // gibt es Elemente in der queue?
+        if (this.queue.length > 0) {
+            let qentry = this.queue[0];
+            qentry[0].notify.apply(qentry[0], [qentry[0], qentry[1], qentry[2]]);
+            this.queue.shift();
+        }
+        if (this.queue.length > 0) {
+            let d_o = new Date();
+            window.location.hash = d_o.getTime();
+        }
+        event.preventDefault();
+        return false;
+    }
+    subscribe (Subscriber, Message) {
+        if (Message in this.Subscriber) {
+            // Message bekannt, Liste der Subscriber untersuchen
+            if (this.Subscriber[Message].indexOf(Subscriber) == -1) {
+                this.Subscriber[Message].push(Subscriber);
+            }
+        } else {
+            // Message noch nicht vorhanden, neu eintragen
+            this.Subscriber[Message] = [Subscriber];
+        }
+    }
+    unSubscribe (Subscriber, Message) {
+        if (Message in this.Subscriber) {
+            // Message bekannt, Liste der Subscriber untersuchen
+            let Entry_a = this.Subscriber[Message];
+            let index_i = Entry_a.indexOf(Subscriber);
+            if (index_i >= 0) {
+                // Eintrag entfernen
+                Entry_a[index_i] = null;
+                Entry_a = this.compact(Entry_a); // compact liefert Kopie!
+                if (Entry_a.length == 0) {
+                    // keine Subscriber mehr, kann entfernt werden
+                    delete this.Subscriber[Message];
+                }
+            }
+        } else {
+            // Message nicht vorhanden, falsche Anforderung
+        }
+    }
+    publish (Message, Data) {
+        let data = "<null>";
+        if ((Data != undefined) && (Data != null)) {
+            data = Data.toString();
+        }
+        console.info('es - publish ' + Message + ' :');
+        console.log(Data);
+        let that = this;
+        this.each(this.Subscriber, function (value, key) {
+                // geliefert wird jeweils ein Wert, hier ein Array, und der Key
+                if (key == Message) {
+                    // an alle Subscriber weitergeben
+                    this.each(value, function (entry, index) {
+                            // geliefert wird hier das Element und der Index
+                            that.queue.push([entry, Message, Data]);
+                            let date = new Date();
+                            window.location.hash = date.getTime();
+                        }, this
+                    );
+                }
+            }, this
+        )
+    }
+
+    each(object, iterator, context) {
+        for (let key in object) {
+            iterator.call(context, object[key], key);
+        }
+    }
+
+    findAll(object, iterator, context) {
+        let results = [];
+        this.each(object, function(value, index) {
+            if (iterator.call(context, value, index))
+                results.push(value);
+        });
+        return results;
+    }
+
+    compact(object) {
+        return this.findAll(object, function(value_opl) {
+            return value_opl != null;
+        });
+    }
+
+
+}
+
+module.exports = EventService;
+},{}],8:[function(require,module,exports){
+let Menu = class {
+
+    constructor(selector, config) {
+
+        if (config) {
+            this.HeadingDomObject = $(config.HeadingSelector);
+        }
+
+        this.DomObject = $(selector);
+        this.DomObject.on('click', $.proxy(function (e) {
+            this.click_event_handler(e)
+        }, this));
+
+        $("#menu-toggle").click(function (e) {
+            e.preventDefault();
+            $("#wrapper").toggleClass("toggled");
+        });
+
+        APP.eventservice.subscribe(this, 'menu');
+    }
+
+    click_event_handler(event) {
+        event.preventDefault();
+    }
+
+    changeHeading(heading) {
+        this.HeadingDomObject.html(heading);
+    }
+
+    notify(self, message, data) {
+        switch (message) {
+            case 'menu':
+                if (self[data.method] != undefined && typeof data.text === 'string') {
+                    self[data.method](data.text);
+                    return;
+                }
+                console.warn('Falsche parameter: ' + message + ':');
+                console.log(data);
+
+                break;
+            default:
+                console.warn('Unbekannte Notification: ' + message);
+                break;
+        }
+    }
+}
+
+module.exports = Menu;
+},{}],9:[function(require,module,exports){
+let Nav = class {
+    constructor(selector, config) {
+        if (selector == undefined) return;
+        this.DomObject = $(selector);
+        this.DomObject.on('click', $.proxy(function (e) {
+            this.click_event_handler(e);
+        }, this));
+    }
+
+    click_event_handler(event) {
+
+        event.preventDefault();
+        let target = $(event.target);
+
+        if (target.is('a')) {
+            APP.eventservice.publish('content', {
+                method: 'setTab',
+                name: target.data('href')
+            });
+            target.find('em.close-tab').show();
+        }
+
+        if (target.is('em.close-tab')) {
+            let em = target;
+            target = target.parent();
+
+            APP.eventservice.publish('content', {
+                method: 'destroyTab',
+                name: target.data('href')
+            });
+
+            em.hide()
+        }
+    }
+
+}
+module.exports = Nav;
+},{}],10:[function(require,module,exports){
+let notify = function (self, message, data){
+    switch (message_spl) {
+//----------------------------------------------------------------------------------------------------------------------
+        case 'app':
+            switch (data_apl[0]) {
+                case 'init':
+                    APP.tm_o = new TemplateManager_cl();
+                    break;
+
+                default:
+                    console.warn('Unbekannte app-Notification: ' + data_apl[0]);
+                    break;
+            }
+            break;
+//----------------------------------------------------------------------------------------------------------------------
+        default:
+            console.warn('Unbekannte Notification: ' + message_spl);
+            break;
+    }
+
+}
+},{}],11:[function(require,module,exports){
+let templates = {
+    dashboard: {
+        page: require("../../../views/dashboard/dashboard.jade")
+    },
+    events:{
+        page: require("../../../views/events/page.jade")
+    },
+    calendar:{
+        widget: require("../../../views/calendar/widget.jade")
+    },
+    timeline:{
+        widget: require("../../../views/timeline/widget.jade")
+    },
+    timetable:{
+        page: require("../../../views/timetable/timetable.jade")
+    },
+    alert:{
+        success: require("../../../views/alert/success.jade"),
+        danger: require("../../../views/alert/danger.jade"),
+        info: require("../../../views/alert/info.jade"),
+        primary: require("../../../views/alert/primary.jade"),
+        warning: require("../../../views/alert/warning.jade"),
+    },
+    layout:{
+        nav_items: require('../../../views/layout/nav_items.jade')
+    }
+}
+
+module.exports = templates;
+},{"../../../views/alert/danger.jade":18,"../../../views/alert/info.jade":19,"../../../views/alert/primary.jade":20,"../../../views/alert/success.jade":21,"../../../views/alert/warning.jade":22,"../../../views/calendar/widget.jade":23,"../../../views/dashboard/dashboard.jade":24,"../../../views/events/page.jade":25,"../../../views/layout/nav_items.jade":26,"../../../views/timeline/widget.jade":27,"../../../views/timetable/timetable.jade":28}],12:[function(require,module,exports){
 let Calendar = class {
 
 }
 
 module.exports = Calendar;
-},{}],5:[function(require,module,exports){
-let Content = class {
-
-    constructor(selector, config) {
-        if (selector == undefined) return;
-        this.ContentDomObject = $(selector);
-
-        if(config){
-
-        }
-    }
-
-    set(name){
-        console.log(name);
-        //Falls name nicht in classes vorhanden
-        if (classes[name] == undefined) return false;
-        console.log('test1');
-
-        //Falls content leer ist
-        if (this.content == undefined){
-            console.log('test11');
-
-            this.content = new classes[name]();
-            this.content.render();
-            APP.tabs[name] = this.content;
-            return true;
-        }
-        console.log('test2');
-
-        //Falls content nicht leer und seite noch nicht bekannt
-        if (APP.tabs[name] == undefined){
-            console.log('test21');
-
-            this.content.stash();
-
-            this.content = new classes[name]();
-            this.content.render();
-            APP.tabs[name] = this.content;
-            return true;
-        }
-        console.log('test3');
-
-        //Falls content nicht leer und seite schon mal geladen
-        this.content.stash();
-
-        this.content =  APP.tabs[name];
-        this.content.render();
-        APP.tabs[name] = this.content;
-        return true;
-    }
-}
-module.exports = Content
-},{}],6:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 let Dashboard = class {
     constructor(selector, config){
-        if(selector == undefined) return;
+        this.title = 'Dashboard'
     }
 
-    stash(){
-        this.stash = this.DashboardDomObject.html()
-        this.DashboardDomObject = undefined
+    hide(){
+        this.DomObject.hide()
     }
 
-    restore(){
-        this.DashboardDomObject.html(this.stash);
-        this.DashboardDomObject = $('#dashboard');
+    show(){
+        this.DomObject.show();
+        this.set_heading();
     }
-    render(){
-        APP.content.ContentDomObject.html(templates.dashboard.page({}));
-        this.DashboardDomObject = $('#dashboard');
+
+    render(target){
+        target.append(templates.dashboard.page({}));
+        this.DomObject = $('#dashboard');
+        this.set_heading();
+    }
+    set_heading(){
+        APP.eventservice.publish('menu', {
+            method: 'change_heading',
+            text: this.title
+        });
+    }
+    destroy(){
+        this.DomObject.remove();
     }
 }
 
 module.exports = Dashboard;
-},{}],7:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+let Events = class {
+    constructor(selector, config){
+        this.title = 'Termine'
+    }
+
+    hide(){
+        this.DomObject.hide()
+    }
+
+    show(){
+        this.DomObject.show();
+        this.set_heading();
+    }
+
+    render(target){
+        target.append(templates.events.page({}));
+        this.DomObject = $('#events');
+        this.set_heading();
+    }
+    set_heading(){
+        APP.eventservice.publish('menu', {
+            method: 'change_heading',
+            text: this.title
+        });
+    }
+    destroy(){
+        this.DomObject.remove();
+    }
+}
+
+module.exports = Events;
+},{}],15:[function(require,module,exports){
 let Login = class {
     constructor (selector, config) {
         this.LoginDomObject = $(selector);
@@ -395,71 +753,97 @@ let Login = class {
     }
 }
 module.exports = Login;
-},{}],8:[function(require,module,exports){
-let Menu = class {
-
-    constructor(selector, config){
-
-        if (config){
-
-        }
-
-        this.MenuDomObject = $(selector);
-        this.MenuDomObject.click(this.click_event_handler());
-    }
-
-    click_event_handler(e){
-        e.preventDefault();
-        $("#wrapper").toggleClass("toggled");
-    }
-}
-
-module.exports = Menu;
-},{}],9:[function(require,module,exports){
-let Nav = class {
-    constructor (selector, config){
-        if(selector == undefined) return;
-        this.NavDomObject = $(selector);
-        this.NavDomObject.on('click', $.proxy(function(e){
-            this.click_event_handler(e);
-        },this));
-    }
-
-    click_event_handler(event) {
-        event.preventDefault();
-        let target = $($(event.target));
-        if(target.is('a')){
-            APP.content.set(target.data('href'));
-            console.log(target.data('href'))
-        }
-    }
-
-}
-module.exports = Nav;
-},{}],10:[function(require,module,exports){
-let templates = {
-    dashboard: {
-        page: require("../../views/dashboard/dashboard.jade")
-    },
-    calendar:{
-        widget: require("../../views/calendar/widget.jade")
-    },
-    timeline:{
-        widget: require("../../views/timeline/widget.jade")
-    },
-    timetable:{
-        page: require("../../views/timetable/timetable.jade")
-    }
-}
-
-module.exports = templates;
-},{"../../views/calendar/widget.jade":12,"../../views/dashboard/dashboard.jade":13,"../../views/timeline/widget.jade":14,"../../views/timetable/timetable.jade":15}],11:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 let TimeLine = class {
 
 }
 
 module.exports = TimeLine;
-},{}],12:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+let Timetable = class {
+    constructor(selector, config){
+
+        this.title = "Stundenpläne"
+    }
+
+    set_heading(){
+        APP.eventservice.publish('menu', {
+            method: 'change_heading',
+            text: this.title
+        });
+    }
+
+    hide(){
+        this.DomObject.hide()
+    }
+
+    show(){
+        this.DomObject.show();
+        this.set_heading();
+
+    }
+    render(target){
+        target.append(templates.timetable.page({}));
+        this.DomObject = $('#timetable');
+        this.set_heading();
+    }
+    destroy(){
+        this.DomObject.remove();
+    }
+}
+
+module.exports = Timetable;
+},{}],18:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (text) {
+buf.push("<div role=\"alert\" class=\"alert bg-danger\"><em class=\"fa fa-minus-circle mr-2\"></em>" + (jade.escape((jade_interp = text) == null ? '' : jade_interp)) + "<a href=\"#\" class=\"remove float-right\"><em class=\"fa fa-remove\"></em></a></div>");}.call(this,"text" in locals_for_with?locals_for_with.text:typeof text!=="undefined"?text:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],19:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (text) {
+buf.push("<div role=\"alert\" class=\"alert bg-info\"><em class=\"fa fa-tag mr-2\"></em>" + (jade.escape((jade_interp = text) == null ? '' : jade_interp)) + "<a href=\"#\" class=\"remove float-right\"><em class=\"fa fa-remove\"></em></a></div>");}.call(this,"text" in locals_for_with?locals_for_with.text:typeof text!=="undefined"?text:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],20:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (text) {
+buf.push("<div role=\"alert\" class=\"alert bg-primary\"><em class=\"fa fa-comment mr-2\"></em>" + (jade.escape((jade_interp = text) == null ? '' : jade_interp)) + "<a href=\"#\" class=\"remove float-right\"><em class=\"fa fa-remove\"></em></a></div>");}.call(this,"text" in locals_for_with?locals_for_with.text:typeof text!=="undefined"?text:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],21:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (text) {
+buf.push("<div role=\"alert\" class=\"alert bg-success\"><em class=\"fa fa-check-circle mr-2\"></em>" + (jade.escape((jade_interp = text) == null ? '' : jade_interp)) + "<a href=\"#\" class=\"remove float-right\"><em class=\"fa fa-remove\"></em></a></div>");}.call(this,"text" in locals_for_with?locals_for_with.text:typeof text!=="undefined"?text:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],22:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (text) {
+buf.push("<div role=\"alert\" class=\"alert bg-warning\"><em class=\"fa fa-exclamation-triangle mr-2\"></em>" + (jade.escape((jade_interp = text) == null ? '' : jade_interp)) + "<a href=\"#\" class=\"remove float-right\"><em class=\"fa fa-remove\"></em></a></div>");}.call(this,"text" in locals_for_with?locals_for_with.text:typeof text!=="undefined"?text:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],23:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -469,7 +853,7 @@ var jade_interp;
 
 buf.push("<div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div>");;return buf.join("");
 };
-},{"jade/runtime":2}],13:[function(require,module,exports){
+},{"jade/runtime":2}],24:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -477,9 +861,50 @@ var buf = [];
 var jade_mixins = {};
 var jade_interp;
 
-buf.push("<header class=\"page-header row justify-center\"><div class=\"col-md-6 col-lg-8\"><h1 class=\"float-left text-center text-md-left\">Dashboard</h1></div><div class=\"dropdown user-dropdown col-md-6 col-lg-4 text-center text-md-right\"><a href=\"https://example.com\" id=\"dropdownMenuLink\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-stripped dropdown-toggle\"><!--img(src=\"images/profile-pic.jpg\"\nalt=\"profile photo\"\nclass=\"circle float-left profile-photo\"\nwidth=\"50\"\nheight=\"auto\")\n--><div class=\"username mt-1\"><h4 class=\"mb-1\">Username</h4><h6 calss=\"text-muted\">Super Admin</h6></div></a><div style=\"margin-right: 1.5rem;\" aria-labelledby=\"dropdownMenuLink\" id=\"toggle-test\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-user-circle mr-1\"></em><text>View Profile</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Calendar</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Logout</text></a></div></div><div class=\"clear\"></div></header><section id=\"dashboard\" class=\"row\"><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Timeline</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><ul class=\"timeline\"><li><div class=\"timeline-badge\"><em class=\"fa fa-camera\"></em></div><div class=\"timeline-panel\"><div class=\"timeline-heading\"><h5 class=\"timeline-title mt-2\">Titel hier einfügen</h5></div><div class=\"timeline-body\"><p>Variable hier einfügen</p></div></div></li></ul></div></div></div></section>");;return buf.join("");
+buf.push("<section id=\"dashboard\" class=\"row\"><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Kalender</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><div id=\"calendar\"></div></div></div></div><div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Timeline</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><ul class=\"timeline\"><li><div class=\"timeline-badge\"><em class=\"fa fa-camera\"></em></div><div class=\"timeline-panel\"><div class=\"timeline-heading\"><h5 class=\"timeline-title mt-2\">Titel hier einfügen</h5></div><div class=\"timeline-body\"><p>Variable hier einfügen</p></div></div></li></ul></div></div></div></section>");;return buf.join("");
 };
-},{"jade/runtime":2}],14:[function(require,module,exports){
+},{"jade/runtime":2}],25:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+
+buf.push("<section id=\"events\" class=\"row\"><div class=\"col-sm-12 col-md-6 \"><span>Termine und Event</span></div></section>");;return buf.join("");
+};
+},{"jade/runtime":2}],26:[function(require,module,exports){
+var jade = require("jade/runtime");
+
+module.exports = function template(locals) {
+var buf = [];
+var jade_mixins = {};
+var jade_interp;
+;var locals_for_with = (locals || {});(function (nav, undefined) {
+// iterate nav
+;(function(){
+  var $$obj = nav;
+  if ('number' == typeof $$obj.length) {
+
+    for (var $index = 0, $$l = $$obj.length; $index < $$l; $index++) {
+      var e = $$obj[$index];
+
+buf.push("<li class=\"nav-item\"><a" + (jade.attr("data-href", "" + (e.href) + "", true, false)) + (jade.attr("data-heading", "" + (e.name) + "", true, false)) + " class=\"nav-link active\"><em" + (jade.cls(["fa " + (e.icon) + ""], [true])) + "></em>" + (jade.escape((jade_interp = e.name) == null ? '' : jade_interp)) + "<em style=\"display: none;\" class=\"close-tab pull-right fa fa-times\"></em></a></li>");
+    }
+
+  } else {
+    var $$l = 0;
+    for (var $index in $$obj) {
+      $$l++;      var e = $$obj[$index];
+
+buf.push("<li class=\"nav-item\"><a" + (jade.attr("data-href", "" + (e.href) + "", true, false)) + (jade.attr("data-heading", "" + (e.name) + "", true, false)) + " class=\"nav-link active\"><em" + (jade.cls(["fa " + (e.icon) + ""], [true])) + "></em>" + (jade.escape((jade_interp = e.name) == null ? '' : jade_interp)) + "<em style=\"display: none;\" class=\"close-tab pull-right fa fa-times\"></em></a></li>");
+    }
+
+  }
+}).call(this);
+}.call(this,"nav" in locals_for_with?locals_for_with.nav:typeof nav!=="undefined"?nav:undefined,"undefined" in locals_for_with?locals_for_with.undefined:typeof undefined!=="undefined"?undefined:undefined));;return buf.join("");
+};
+},{"jade/runtime":2}],27:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -489,7 +914,7 @@ var jade_interp;
 
 buf.push("<div class=\"col-sm-12 col-md-6 \"><div class=\"card mb-4\"><div class=\"card-block\"><h3 class=\"card-title\">Timeline</h3><div class=\"dropdown card-title-btn-container\"><button type=\"button\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-sm btn-subtle dropdown-toggle\"><em class=\"fa fa-cog\"></em></button><div aria-labelledby=\"dropdownMenuButton\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-search mr-1\"></em><text>Informationen</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-remove mr-1\"></em><text>Fenster schließen</text></a></div></div><h6 class=\"card-subtitle mb-2 text-muted\">Termine und Veranstaltungen</h6><ul class=\"timeline\"><li><div class=\"timeline-badge\"><em class=\"fa fa-camera\"></em></div><div class=\"timeline-panel\"><div class=\"timeline-heading\"><h5 class=\"timeline-title mt-2\">Titel hier einfügen</h5></div><div class=\"timeline-body\"><p>Variable hier einfügen</p></div></div></li></ul></div></div></div>");;return buf.join("");
 };
-},{"jade/runtime":2}],15:[function(require,module,exports){
+},{"jade/runtime":2}],28:[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -497,6 +922,6 @@ var buf = [];
 var jade_mixins = {};
 var jade_interp;
 
-buf.push("<section id=\"timetable\" class=\"row\"><header class=\"page-header row justify-center\"><div class=\"col-md-6 col-lg-8\"><h1 class=\"float-left text-center text-md-left\">Dashboard</h1></div><div class=\"dropdown user-dropdown col-md-6 col-lg-4 text-center text-md-right\"><a href=\"https://example.com\" id=\"dropdownMenuLink\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"false\" class=\"btn btn-stripped dropdown-toggle\"><!--img(src=\"images/profile-pic.jpg\"\nalt=\"profile photo\"\nclass=\"circle float-left profile-photo\"\nwidth=\"50\"\nheight=\"auto\")\n--><div class=\"username mt-1\"><h4 class=\"mb-1\">Username</h4><h6 calss=\"text-muted\">Super Admin</h6></div></a><div style=\"margin-right: 1.5rem;\" aria-labelledby=\"dropdownMenuLink\" id=\"toggle-test\" class=\"dropdown-menu dropdown-menu-right\"><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-user-circle mr-1\"></em><text>View Profile</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Calendar</text></a><a href=\"#\" class=\"dropdown-item\"><em class=\"fa fa-sliders mr-1\"></em><text>Logout</text></a></div></div><div class=\"clear\"></div></header><p>STUNDENPLAN</p></section>");;return buf.join("");
+buf.push("<section id=\"timetable\" class=\"row\"><div id=\"timetable-menu\" class=\"col col-12\"><div class=\"input-group col col-12\"><input id=\"name\" name=\"name\" type=\"text\" placeholder=\"\" class=\"form-control input-md\"/><span class=\"input-group-btn\"><button button=\"button\" id=\"btn-todo\" class=\"btn btn-primary btn-md\"><em style=\"font-size: 20px\" class=\"fa fa-plus\"></em></button></span></div></div></section>");;return buf.join("");
 };
 },{"jade/runtime":2}]},{},[3]);

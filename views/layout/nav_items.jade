@@ -1,0 +1,6 @@
+each e in nav
+    li(class="nav-item")
+        a(class="nav-link active" data-href="#{e.href}" data-heading="#{e.name}")
+            em(class="fa #{e.icon}")
+            | #{e.name}
+            em(class="close-tab pull-right fa fa-times" style="display: none;")

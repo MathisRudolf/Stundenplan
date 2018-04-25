@@ -9,8 +9,10 @@ nav(class="sidebar col-xs-12 col-sm-4 col-lg-3 col-xl-2 bg-faded sidebar-style-1
         em(class="fa fa-bars")
 
     ul(class="nav nav-pills flex-column sidebar-nav")
-        each e in nav
-            li(class="nav-item")
-                a(class="nav-link active" data-href="#{e.href}")
-                    em(class="fa #{e.icon}")
-                    | #{e.name}
+        include nav_items
+
+    a(href="#" class="logout-button col-sm-hidden")
+        em(class="fa fa-power-off")
+        |Signout
+
+

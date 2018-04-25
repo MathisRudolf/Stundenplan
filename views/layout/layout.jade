@@ -9,7 +9,10 @@ html(lang="de")
         div(class="container-fluid" id="wrapper")
             div(class="row")
                 include nav
-                main(id="content" class="col-xs-12 col-sm-8 offset-sm-4 col-lg-9 offset-lg-3 col-xl-10 offset-xl-2 pt-3 pl-4")
-                    block content
+                main(class="col-xs-12 col-sm-8 offset-sm-4 col-lg-9 offset-lg-3 col-xl-10 offset-xl-2 pt-3 pl-4")
+                    include header
+                    div(id="alert" class="col-12 mb-2")
+                    div(id="content" class="no-padding")
+                        block content
 
                 //include footer

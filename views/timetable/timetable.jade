@@ -1,5 +1,7 @@
-
-
 section(id="timetable" class="row")
-    include ../layout/header
-    p STUNDENPLAN
+    div(id="timetable-menu" class="col col-12")
+        div(class="input-group col col-12")
+            input(id="name" name="name" class="form-control input-md" type="text" placeholder="")
+            span(class="input-group-btn")
+                button(button class="btn btn-primary btn-md" id="btn-todo")
+                    em(class="fa fa-plus" style="font-size: 20px")

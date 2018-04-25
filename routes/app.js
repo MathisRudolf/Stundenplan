@@ -3,18 +3,18 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    res.render('index', {
+    res.render('layout/layout', {
         nav:[
             {
-                name: 'Dashboard',
-                href: 'Dashboard',
-                icon: 'fa-dashboard'
-            },
-            {
-                name: 'Stundenplan',
+                name: 'Stundenpläne',
                 href: 'Timetable',
                 icon: 'fa-table'
             },
+            {
+                name: 'Aufgabe/Termine',
+                href: 'Events',
+                icon: 'fa-dashboard'
+            }
         ]
     });
 });
